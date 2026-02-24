@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly View - JBM MIS</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; }
+
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Controls bar ── */
+        .top-controls {
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 1.25rem;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+            z-index: 200;
+        }
+
+        /* ── KPI Strip ── */
+        .kpi-strip {
+            flex-shrink: 0;
+            background: var(--bg-card2);
+            border-bottom: 1px solid var(--border);
+            padding: 0.45rem 1.25rem;
+        }
+
+        .kpi-card-mini {
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--neon-cyan);
+            padding: 0.4rem 0.8rem;
+            transition: var(--transition);
+            min-width: 0;
+        }
+        .kpi-card-mini:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,229,255,0.15); border-color: rgba(0,229,255,0.3); }
+        .kpi-card-mini .kpi-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255,255,255,0.35);
+            margin-bottom: 1px;
+        }
+        .kpi-card-mini .kpi-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+        }
+
+        /* ── Spreadsheet ── */
+        .spreadsheet-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+        .spreadsheet-container { flex:1; overflow:auto; position:relative; }
+
+        /* ── Table ── */
+        .spreadsheet-table { width:max-content; min-width:100%; border-collapse:separate; border-spacing:0; font-size:11px; font-family:'JetBrains Mono',monospace; }
+
+        .spreadsheet-table th {
+            background: var(--bg-card2);
+            color: rgba(255,255,255,0.7);
+            border: 1px solid var(--border);
+            padding: 4px 6px;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        .spreadsheet-table th.fixed-col { position: sticky; left:0; z-index: 101; }
+        .spreadsheet-table th:first-child { z-index: 102; }
+
+        .spreadsheet-table td {
+            padding: 3px 5px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: var(--bg-card);
+            vertical-align: middle;
+            white-space: nowrap;
+            color: rgba(255,255,255,0.75);
+        }
+        .spreadsheet-table td.fixed-col {
+            position: sticky; left:0; z-index:5;
+            background: var(--bg-card2);
+            border-right: 1px solid rgba(0,229,255,0.15);
+        }
+        .spreadsheet-table tbody tr:hover td { background: rgba(0,229,255,0.04); }
+        .spreadsheet-table tbody tr:hover td.fixed-col { background: rgba(0,229,255,0.08); }
+        .spreadsheet-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+        .spreadsheet-table tbody tr:nth-child(even) td.fixed-col { background: rgba(20,30,46,0.95); }
+
+        /* Header colour groups */
+        .hdr-general  { background: rgba(51,65,85,0.8) !important; color: #94a3b8 !important; }
+        .hdr-part     { background: rgba(8,145,178,0.25) !important; color: var(--neon-cyan) !important; }
+        .hdr-planning { background: rgba(109,40,217,0.25) !important; color: #c084fc !important; }
+        .hdr-manpower { background: rgba(5,150,105,0.25) !important; color: var(--neon-green) !important; }
+        .hdr-production { background: rgba(37,99,235,0.25) !important; color: #60a5fa !important; }
+        .hdr-quality  { background: rgba(190,24,93,0.25) !important; color: #f472b6 !important; }
+        .hdr-losses   { background: rgba(180,83,9,0.25) !important; color: var(--neon-amber) !important; }
+        .hdr-kpi      { background: rgba(6,182,212,0.15) !important; color: var(--neon-teal) !important; border-top: 2px solid rgba(0,229,255,0.3) !important; }
+
+        .master-header { font-size: 0.7rem !important; }
+        .sub-header { font-size: 0.6rem !important; }
+        .section-sep { border-left: 2px solid rgba(0,229,255,0.15) !important; }
+
+        /* Date group row */
+        .date-group-row td {
+            background: linear-gradient(90deg, rgba(0,229,255,0.12) 0%, rgba(0,229,255,0.06) 100%) !important;
+            color: var(--neon-cyan) !important;
+            font-family: 'Syne', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            padding: 5px 10px !important;
+            letter-spacing: 0.5px !important;
+            border-top: 1px solid rgba(0,229,255,0.2) !important;
+            border-bottom: 1px solid rgba(0,229,255,0.2) !important;
+        }
+
+        /* Grand total footer */
+        tfoot .tfoot-row td {
+            position: sticky;
+            bottom: 0;
+            background: rgba(0,229,255,0.08);
+            color: var(--neon-cyan);
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 5px 4px;
+            border: 1px solid rgba(0,229,255,0.15);
+            z-index: 6;
+            white-space: nowrap;
+        }
+        tfoot .tfoot-row td.fixed-col { z-index: 102 !important; background: rgba(0,229,255,0.12); }
+
+        /* Status colours */
+        .st-good { color: var(--neon-green) !important; font-weight: 700; }
+        .st-warn { color: var(--neon-amber) !important; font-weight: 700; }
+        .st-bad  { color: var(--neon-red)   !important; font-weight: 700; }
+
+        .btn-ctrl { padding: 0.32rem 0.8rem; font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 700; border-radius: 6px; }
+
+        /* Vertical text for sub-headers */
+        .vt { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-block; }
+
+        /* Sticky col widths */
+        .col-srno  { min-width: 34px;  max-width: 34px;  text-align: center; }
+        .col-date  { min-width: 80px;  max-width: 80px; }
+        .col-assy  { min-width: 44px;  max-width: 44px; }
+        .col-sap   { min-width: 72px;  max-width: 72px; }
+        .col-desc  { min-width: 200px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+        .col-model { min-width: 90px;  max-width: 90px; }
+        .col-shop  { min-width: 80px;  max-width: 80px; }
+        .col-narrow { min-width: 52px; max-width: 52px; text-align: right; }
+        .col-medium { min-width: 100px; }
+    </style>
+</head>
+<body>
+<div class="main-wrapper">
+
+    <!-- ══ Navbar ══ -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="flex-shrink:0;">
+        <div class="container-fluid" style="max-width:100%;">
+            <a class="navbar-brand" href="#">
+                <img src="logo.png" alt="JBM">
+                <div class="navbar-brand-text">
+                    <span class="main-title">JBM MIS Dashboard</span>
+                    <span class="sub-title">Our milestones are touchstones</span>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="daily-entry.html"><i class="fas fa-calendar-plus"></i> Daily Entry</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="monthly-view.html"><i class="fas fa-calendar-alt"></i> Monthly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar"></i> Yearly</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══ Controls Bar ══ -->
+    <div class="top-controls">
+        <div class="d-flex justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:3px;height:22px;background:linear-gradient(180deg,var(--neon-cyan),#0097a7);border-radius:2px;box-shadow:0 0 8px rgba(0,229,255,0.4);"></div>
+                    <h6 class="mb-0" style="font-family:'Syne',sans-serif;font-weight:800;font-size:0.88rem;color:var(--neon-cyan);letter-spacing:0.5px;">
+                        <i class="fas fa-calendar-alt me-2"></i>Monthly View
+                    </h6>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0" style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">Month:</label>
+                    <select id="selectMonth" class="form-select form-select-sm" style="width:120px;"></select>
+                    <label class="mb-0" style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">Year:</label>
+                    <select id="selectYear"  class="form-select form-select-sm" style="width:88px;"></select>
+                    <button id="btnLoadMonth" class="btn btn-primary btn-ctrl">
+                        <i class="fas fa-sync-alt me-1"></i>Load
+                    </button>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span id="recordCount" class="badge" style="background:rgba(0,229,255,0.1);color:var(--neon-cyan);border:1px solid rgba(0,229,255,0.2);font-family:'JetBrains Mono',monospace;font-size:0.72rem;">0 records</span>
+                <button id="btnExportMonth" class="btn btn-success btn-ctrl">
+                    <i class="fas fa-file-excel me-1"></i>Export Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ KPI Strip ══ -->
+    <div class="kpi-strip">
+        <div class="d-flex gap-2">
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-cyan);">
+                <div class="kpi-label">Total Production</div>
+                <div class="kpi-value" id="kpiProduction">0</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-green);">
+                <div class="kpi-label">Avg OEE %</div>
+                <div class="kpi-value" style="color:var(--neon-green);" id="kpiOEE">0%</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-red);">
+                <div class="kpi-label">Quality %</div>
+                <div class="kpi-value" style="color:var(--neon-teal);" id="kpiQuality">0%</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-blue);">
+                <div class="kpi-label">Performance %</div>
+                <div class="kpi-value" style="color:#60a5fa;" id="kpiPerformance">0%</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-violet);">
+                <div class="kpi-label">Total Plan</div>
+                <div class="kpi-value" style="color:#c084fc;" id="kpiPlan">0</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-orange);">
+                <div class="kpi-label">Rejections</div>
+                <div class="kpi-value" style="color:var(--neon-orange);" id="kpiRejections">0</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-amber);">
+                <div class="kpi-label">Rej %</div>
+                <div class="kpi-value" style="color:var(--neon-amber);" id="kpiRejPct">0%</div>
+            </div>
+            <div class="kpi-card-mini flex-fill" style="border-left-color:var(--neon-teal);">
+                <div class="kpi-label">Availability %</div>
+                <div class="kpi-value" style="color:var(--neon-teal);" id="kpiAvail">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Spreadsheet ══ -->
+    <div class="spreadsheet-wrapper">
+        <div class="spreadsheet-container">
+            <table class="spreadsheet-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th class="master-header fixed-col col-srno hdr-general" rowspan="2" style="text-align:center;">Sr.<br>No.</th>
+                        <th class="master-header fixed-col col-date hdr-general" rowspan="2" style="text-align:center;">Date</th>
+                        <th class="master-header fixed-col col-assy hdr-part" rowspan="2" style="text-align:center;">Assy<br>Cat.</th>
+                        <th class="master-header fixed-col col-sap hdr-part" rowspan="2" style="text-align:center;">SAP<br>Code</th>
+                        <th class="master-header fixed-col col-desc hdr-part" rowspan="2" style="text-align:center;">Part Description</th>
+                        <th class="master-header fixed-col col-model hdr-part" rowspan="2" style="text-align:center;">Model</th>
+                        <th class="master-header fixed-col col-shop hdr-part section-sep" rowspan="2" style="text-align:center;">Shop /<br>Area</th>
+                        <th class="master-header hdr-planning section-sep" colspan="2">Production Planning</th>
+                        <th class="master-header hdr-manpower section-sep" colspan="4">Actual Manpower</th>
+                        <th class="master-header hdr-production section-sep" colspan="5">Actual Production</th>
+                        <th class="master-header hdr-quality section-sep" colspan="3">Quality</th>
+                        <th class="master-header hdr-losses section-sep" colspan="3">Losses</th>
+                        <th class="master-header hdr-kpi section-sep" colspan="6">Performance KPIs</th>
+                    </tr>
+                    <tr>
+                        <th class="sub-header col-narrow section-sep hdr-planning"><span class="vt">Plan</span></th>
+                        <th class="sub-header col-narrow hdr-planning"><span class="vt">Cap/Day</span></th>
+                        <th class="sub-header col-narrow section-sep hdr-manpower"><span class="vt">A Shift MP</span></th>
+                        <th class="sub-header col-narrow hdr-manpower"><span class="vt">B Shift MP</span></th>
+                        <th class="sub-header col-narrow hdr-manpower"><span class="vt">C Shift MP</span></th>
+                        <th class="sub-header col-narrow hdr-manpower"><span class="vt">Total Mdays</span></th>
+                        <th class="sub-header col-narrow section-sep hdr-production"><span class="vt">A Prod</span></th>
+                        <th class="sub-header col-narrow hdr-production"><span class="vt">B Prod</span></th>
+                        <th class="sub-header col-narrow hdr-production"><span class="vt">C Prod</span></th>
+                        <th class="sub-header col-narrow hdr-production"><span class="vt">Total Prod</span></th>
+                        <th class="sub-header col-narrow hdr-production"><span class="vt">Cap Util %</span></th>
+                        <th class="sub-header col-narrow section-sep hdr-quality"><span class="vt">Q. OK</span></th>
+                        <th class="sub-header col-narrow hdr-quality"><span class="vt">NG / Rej</span></th>
+                        <th class="sub-header col-narrow hdr-quality"><span class="vt">Rej %</span></th>
+                        <th class="sub-header col-narrow section-sep hdr-losses"><span class="vt">Total Loss</span></th>
+                        <th class="sub-header col-narrow hdr-losses"><span class="vt">No Plans</span></th>
+                        <th class="sub-header col-medium hdr-losses"><span class="vt">Rej Reason</span></th>
+                        <th class="sub-header col-narrow section-sep hdr-kpi"><span class="vt">Avail %</span></th>
+                        <th class="sub-header col-narrow hdr-kpi"><span class="vt">Perf %</span></th>
+                        <th class="sub-header col-narrow hdr-kpi"><span class="vt">Qual %</span></th>
+                        <th class="sub-header col-narrow hdr-kpi"><span class="vt">OEE %</span></th>
+                        <th class="sub-header col-narrow hdr-kpi"><span class="vt">Std MH</span></th>
+                        <th class="sub-header col-narrow hdr-kpi"><span class="vt">CT (Min)</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="30" class="text-center py-5" style="color:rgba(0,229,255,0.4);font-family:'Syne',sans-serif;font-size:13px;">
+                            <i class="fas fa-calendar-alt me-2" style="color:var(--neon-cyan);opacity:.5;"></i>
+                            Select a <strong style="color:var(--neon-cyan);">month</strong> &amp; <strong style="color:var(--neon-cyan);">year</strong>, then click <strong style="color:var(--neon-cyan);">Load</strong> to view data.
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="tfoot-row" id="tableFooter" style="display:none;">
+                        <td class="fixed-col col-srno" style="text-align:center;">∑</td>
+                        <td class="fixed-col col-date" style="font-size:10px;letter-spacing:0.5px;">GRAND TOTAL</td>
+                        <td class="fixed-col col-assy">—</td>
+                        <td class="fixed-col col-sap">—</td>
+                        <td class="fixed-col col-desc">—</td>
+                        <td class="fixed-col col-model">—</td>
+                        <td class="fixed-col col-shop">—</td>
+                        <td id="ftPlan">0</td><td>—</td>
+                        <td>—</td><td>—</td><td>—</td>
+                        <td id="ftTotalMdays">0</td>
+                        <td>—</td><td>—</td><td>—</td>
+                        <td id="ftTotalProd">0</td>
+                        <td id="ftCapUtil">0%</td>
+                        <td id="ftQualOK">0</td>
+                        <td id="ftRej">0</td>
+                        <td id="ftRejPct">0%</td>
+                        <td id="ftTotalLoss">0</td>
+                        <td>—</td><td>—</td>
+                        <td id="ftAvail" class="st-good">0%</td>
+                        <td id="ftPerf">0%</td>
+                        <td id="ftQual">0%</td>
+                        <td id="ftOEE" class="st-good">0%</td>
+                        <td>—</td><td>—</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div><!-- /.main-wrapper -->
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="loading-overlay active">
+    <div class="spinner-border"></div>
+    <p>LOADING DATA</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="monthly-view.js"></script>
+</body>
+</html>

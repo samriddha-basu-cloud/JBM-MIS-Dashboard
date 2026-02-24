@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Entry - JBM MIS</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Reset & layout ─────────────────────────────────────────── */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Top controls bar ───────────────────────────────────────── */
+        .top-controls {
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            border-bottom: 1px solid rgba(0,229,255,0.15);
+            padding: 0.65rem 1.5rem;
+            z-index: 60;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+
+        .top-controls h6 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.06em;
+            color: var(--neon-cyan);
+            margin: 0;
+        }
+
+        .top-controls .date-control label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: rgba(0,229,255,0.6);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .top-controls .form-control {
+            background: rgba(0,229,255,0.05);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: #e0f7ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            border-radius: 6px;
+        }
+        .top-controls .form-control:focus {
+            background: rgba(0,229,255,0.08);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
+            color: #e0f7ff;
+        }
+
+        /* ── Spreadsheet wrapper ────────────────────────────────────── */
+        .spreadsheet-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+
+        .spreadsheet-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Custom scrollbars for dark theme */
+        .spreadsheet-container::-webkit-scrollbar { width: 10px; height: 10px; }
+        .spreadsheet-container::-webkit-scrollbar-track { background: var(--bg-surface); }
+        .spreadsheet-container::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.25); border-radius: 5px; }
+        .spreadsheet-container::-webkit-scrollbar-thumb:hover { background: rgba(0,229,255,0.45); }
+        .spreadsheet-container::-webkit-scrollbar-corner { background: var(--bg-surface); }
+
+        /* ── Table base ─────────────────────────────────────────────── */
+        .spreadsheet-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── MASTER HEADERS (row 1, sticky top:0) ───────────────────── */
+        .spreadsheet-table thead th.master-header {
+            padding: 10px 8px;
+            text-align: center;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 15;
+            white-space: nowrap;
+        }
+
+        /* ── SUB-HEADERS (row 2, sticky top: master-height) ─────────── */
+        .spreadsheet-table thead th.sub-header {
+            padding: 52px 4px 6px 4px;
+            text-align: left;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 9.5px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 38px;  /* height of master-header row */
+            z-index: 14;
+            vertical-align: bottom;
+        }
+
+        /* ── COLOUR THEMES — all fully OPAQUE ──────────────────────── */
+        .header-general      { background: #334155; color: #e2e8f0; }
+        .header-part-process { background: #0c3a4a; color: #e0f7ff; }
+        .header-planning     { background: #2e1065; color: #ede9fe; }
+        .header-manpower     { background: #1e3a8a; color: #dbeafe; }
+        .header-production   { background: #064e3b; color: #d1fae5; }
+        .header-quality      { background: #7f1d1d; color: #fee2e2; }
+        .header-losses       { background: #431407; color: #fed7aa; }
+        .header-maintenance  { background: #451a03; color: #fef3c7; }
+        .header-kpi          { background: #134e4a; color: #ccfbf1; }
+
+        /* ── FIXED column left-offsets ──────────────────────────────── */
+        /* Sr.No + Part & Process (12 sub-cols) + Planning first 4 sub-cols = 17 fixed cols */
+        .col-srno  { left: 0;      width: 36px;  min-width: 36px; }
+        .col-assy  { left: 36px;   width: 52px;  min-width: 52px; }
+        .col-date  { left: 88px;   width: 88px;  min-width: 88px; }
+        .col-sap   { left: 176px;  width: 82px;  min-width: 82px; }
+        .col-partno{ left: 258px;  width: 90px;  min-width: 90px; }
+        .col-desc  { left: 348px;  width: 160px; min-width: 160px;}
+        .col-model { left: 508px;  width: 72px;  min-width: 72px; }
+        .col-variant{left: 580px;  width: 64px;  min-width: 64px; }
+        .col-shop  { left: 644px;  width: 80px;  min-width: 80px; }
+        .col-owner { left: 724px;  width: 80px;  min-width: 80px; }
+        .col-process{left: 804px;  width: 70px;  min-width: 70px; }
+        .col-cell  { left: 874px;  width: 58px;  min-width: 58px; }
+        .col-op    { left: 932px;  width: 58px;  min-width: 58px; }
+        .col-stdman{ left: 990px;  width: 60px;  min-width: 60px; }
+        .col-ct    { left: 1050px; width: 60px;  min-width: 60px; }
+        .col-jph   { left: 1110px; width: 58px;  min-width: 58px; }
+        .col-cap   { left: 1168px; width: 64px;  min-width: 64px; }
+
+        /* ── FIXED column sticky rules ──────────────────────────────── */
+        .col-fixed {
+            position: sticky;
+        }
+
+        /* Fixed master-headers: z-index must beat scrolling non-fixed headers */
+        thead th.fixed-col.master-header { z-index: 110; }
+        thead th.fixed-col.sub-header    { z-index: 100; }
+        thead th:not(.fixed-col).master-header { z-index: 15; }
+        thead th:not(.fixed-col).sub-header    { z-index: 14; }
+
+        /* Fixed body cells */
+        tbody td.fixed-col { z-index: 5; }
+
+        /* Separator line after fixed zone */
+        .col-cap.fixed-col { border-right: 2px solid rgba(0,229,255,0.4) !important; }
+
+        /* ── FREE (scrollable) column widths ───────────────────────── */
+        .col-narrow { width: 50px; min-width: 50px; padding: 3px 2px !important; }
+        .col-medium { width: 80px; min-width: 80px; padding: 3px 4px !important; }
+
+        /* ── Body cells ─────────────────────────────────────────────── */
+        .spreadsheet-table tbody td {
+            padding: 2px 4px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: var(--bg-card);
+            vertical-align: middle;
+            white-space: nowrap;
+            color: #c8d6e5;
+        }
+
+        /* Fixed body cells get a slightly different opaque bg */
+        tbody td.fixed-col {
+            background: #0e1724 !important;
+        }
+
+        .spreadsheet-table tbody tr:nth-child(even) td {
+            background: #0c1520;
+        }
+        .spreadsheet-table tbody tr:nth-child(even) td.fixed-col {
+            background: #0b1420 !important;
+        }
+
+        .spreadsheet-table tbody tr:hover td {
+            background: rgba(0,229,255,0.06) !important;
+        }
+        .spreadsheet-table tbody tr:hover td.fixed-col {
+            background: rgba(0,229,255,0.09) !important;
+        }
+
+        /* ── Cell inputs ─────────────────────────────────────────────── */
+        .cell-input, .cell-select {
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid transparent;
+            background: transparent;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: #c8d6e5;
+            box-sizing: border-box;
+            border-radius: 3px;
+        }
+
+        .cell-input:focus, .cell-select:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(0,229,255,0.06);
+            outline: none;
+            color: #e0f7ff;
+            box-shadow: 0 0 0 1px rgba(0,229,255,0.2);
+        }
+
+        .cell-select option {
+            background: #0c1520;
+            color: #c8d6e5;
+        }
+
+        .cell-readonly {
+            background: rgba(0,229,255,0.04) !important;
+            color: var(--neon-cyan) !important;
+            font-weight: 600;
+        }
+
+        .cell-readonly input {
+            color: var(--neon-cyan) !important;
+            font-weight: 600;
+        }
+
+        /* OEE / KPI readonly colouring */
+        td[data-field="oeePct"] input       { color: var(--neon-green)  !important; }
+        td[data-field="qualityPct"] input   { color: var(--neon-teal)   !important; }
+        td[data-field="availabilityPct"] input{ color: var(--neon-cyan) !important; }
+        td[data-field="performancePct"] input { color: var(--neon-amber)!important; }
+        td[data-field="rejections"] input   { color: var(--neon-red)    !important; }
+
+        /* ── Section separator left border ──────────────────────────── */
+        .section-sep { border-left: 2px solid rgba(255,255,255,0.14) !important; }
+
+        /* ── Vertical text in sub-headers ───────────────────────────── */
+        .vt {
+            display: inline-block;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            font-size: 9.5px;
+            line-height: 1.2;
+        }
+
+        /* ── Delete button ──────────────────────────────────────────── */
+        .btn-del {
+            width: 22px; height: 22px;
+            padding: 0;
+            border-radius: 4px;
+            border: 1px solid rgba(255,23,68,0.4);
+            background: rgba(255,23,68,0.1);
+            color: var(--neon-red);
+            font-size: 10px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-del:hover {
+            background: rgba(255,23,68,0.25);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 8px rgba(255,23,68,0.3);
+        }
+
+        /* ── Buttons in top controls ────────────────────────────────── */
+        .btn-neon {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.06em;
+            padding: 0.42rem 1rem;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .btn-neon-success {
+            background: linear-gradient(135deg, #00c853, #00e676);
+            color: #001a06;
+        }
+        .btn-neon-success:hover { box-shadow: 0 0 16px rgba(0,230,118,0.5); transform: translateY(-1px); }
+
+        .btn-neon-warn {
+            background: linear-gradient(135deg, #ff8f00, #ffab00);
+            color: #1a0d00;
+        }
+        .btn-neon-warn:hover { box-shadow: 0 0 16px rgba(255,171,0,0.5); transform: translateY(-1px); }
+
+        .btn-neon-primary {
+            background: linear-gradient(135deg, #0070c0, #2979ff);
+            color: #ffffff;
+        }
+        .btn-neon-primary:hover { box-shadow: 0 0 16px rgba(41,121,255,0.5); transform: translateY(-1px); }
+
+        #csvUpload { display: none; }
+
+        /* ── Loading overlay ─────────────────────────────────────────── */
+        .loading-overlay {
+            position: fixed; inset: 0;
+            background: rgba(6,10,18,0.9);
+            backdrop-filter: blur(8px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .loading-overlay .spinner-border {
+            color: var(--neon-cyan) !important;
+            width: 2.5rem; height: 2.5rem;
+            border-width: 3px;
+            box-shadow: 0 0 20px rgba(0,229,255,0.4);
+        }
+        .loading-overlay p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--neon-cyan);
+            margin-top: 1rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 4rem 2rem;
+            color: rgba(0,229,255,0.3);
+            font-family: 'Syne', sans-serif;
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+        .empty-state p { font-size: 0.85rem; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body>
+<div class="main-wrapper">
+
+    <!-- ══ NAVBAR ══ -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="logo.png" alt="JBM Group">
+                <div class="navbar-brand-text">
+                    <span class="main-title">JBM MIS Dashboard</span>
+                    <span class="sub-title">Our milestones are touchstones</span>
+                </div>
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line me-1"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus me-1"></i>Daily Entry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt me-1"></i>Monthly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar me-1"></i>Yearly</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══ TOP CONTROLS ══ -->
+    <div class="top-controls">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h6><i class="fas fa-table me-2" style="color:var(--neon-cyan);"></i>MIS Daily Data Entry</h6>
+                <div class="date-control d-flex align-items-center gap-2">
+                    <label for="dateSelector"><i class="fas fa-calendar-day me-1"></i>Date:</label>
+                    <input type="date" id="dateSelector" class="form-control form-control-sm" style="width:155px;">
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="btnAddRow" class="btn-neon btn-neon-success">
+                    <i class="fas fa-plus me-1"></i>Add Row
+                </button>
+                <button id="btnUploadCSV" class="btn-neon btn-neon-warn">
+                    <i class="fas fa-upload me-1"></i>Upload CSV
+                </button>
+                <input type="file" id="csvUpload" accept=".csv">
+                <button id="btnExportExcel" class="btn-neon btn-neon-primary">
+                    <i class="fas fa-file-excel me-1"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ SPREADSHEET ══ -->
+    <div class="spreadsheet-wrapper">
+        <div class="spreadsheet-container">
+            <table class="spreadsheet-table" id="dataTable">
+                <thead>
+                    <!-- ═══════════════ MASTER HEADER ROW ═══════════════ -->
+                    <tr>
+                        <!-- Sr. No. — fixed, rowspan 2 -->
+                        <th class="master-header fixed-col col-srno header-general" rowspan="2">Sr.<br>No.</th>
+
+                        <!-- Part & Process Details — 12 cols — FIXED -->
+                        <th class="master-header fixed-col header-part-process" colspan="12" style="left: 36px; width: 954px;">Part &amp; Process Details</th>
+
+                        <!-- Production Planning & Standards — 4 fixed + 3 free -->
+                        <th class="master-header fixed-col header-planning" colspan="4" style="left: 990px; width: 242px;">Production Planning & Standards</th>
+                        <th class="master-header header-planning section-sep" colspan="3">Planning (cont.)</th>
+
+                        <!-- Actual Manpower -->
+                        <th class="master-header header-manpower section-sep" colspan="4">Actual Manpower</th>
+
+                        <!-- Actual Production -->
+                        <th class="master-header header-production section-sep" colspan="8">Actual Production</th>
+
+                        <!-- Operational Losses -->
+                        <th class="master-header header-losses section-sep" colspan="7">Operational Losses</th>
+
+                        <!-- Maintenance & Technical Losses -->
+                        <th class="master-header header-maintenance section-sep" colspan="11">Maintenance &amp; Technical Losses</th>
+
+                        <!-- Management / Other Losses -->
+                        <th class="master-header header-losses section-sep" colspan="4">Other Losses</th>
+
+                        <!-- Performance KPIs -->
+                        <th class="master-header header-kpi section-sep" colspan="6">Performance KPIs</th>
+
+                        <!-- Actions -->
+                        <th class="master-header header-general" rowspan="2" style="min-width:32px;"></th>
+                    </tr>
+
+                    <!-- ═══════════════ SUB-HEADER ROW ═══════════════ -->
+                    <tr>
+                        <!-- Part & Process sub-headers — FIXED -->
+                        <th class="sub-header fixed-col col-assy header-part-process"><span class="vt">Assy Cat.</span></th>
+                        <th class="sub-header fixed-col col-date header-part-process"><span class="vt">Date</span></th>
+                        <th class="sub-header fixed-col col-sap header-part-process"><span class="vt">SAP Code</span></th>
+                        <th class="sub-header fixed-col col-partno header-part-process"><span class="vt">Part No.</span></th>
+                        <th class="sub-header fixed-col col-desc header-part-process"><span class="vt">Part Description</span></th>
+                        <th class="sub-header fixed-col col-model header-part-process"><span class="vt">Model</span></th>
+                        <th class="sub-header fixed-col col-variant header-part-process"><span class="vt">Variant</span></th>
+                        <th class="sub-header fixed-col col-shop header-part-process"><span class="vt">Shop/Area</span></th>
+                        <th class="sub-header fixed-col col-owner header-part-process"><span class="vt">Ownership</span></th>
+                        <th class="sub-header fixed-col col-process header-part-process"><span class="vt">Process</span></th>
+                        <th class="sub-header fixed-col col-cell header-part-process"><span class="vt">Cell No.</span></th>
+                        <th class="sub-header fixed-col col-op header-part-process"><span class="vt">OP</span></th>
+
+                        <!-- Planning Standards sub-headers — FIXED (first 4) -->
+                        <th class="sub-header fixed-col col-stdman header-planning"><span class="vt">Std. ManHead</span></th>
+                        <th class="sub-header fixed-col col-ct header-planning"><span class="vt">CT (Min)</span></th>
+                        <th class="sub-header fixed-col col-jph header-planning"><span class="vt">JPH</span></th>
+                        <th class="sub-header fixed-col col-cap header-planning"><span class="vt">Cap/day</span></th>
+
+                        <!-- Planning cont. — FREE -->
+                        <th class="sub-header col-narrow section-sep header-planning"><span class="vt">Tgt Man/Part</span></th>
+                        <th class="sub-header col-narrow header-planning"><span class="vt">Plan</span></th>
+                        <th class="sub-header col-narrow header-planning"><span class="vt">Req. Mdays</span></th>
+
+                        <!-- Manpower — FREE -->
+                        <th class="sub-header col-narrow section-sep header-manpower"><span class="vt">A Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">B Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">C Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">Total Mdays</span></th>
+
+                        <!-- Production — FREE -->
+                        <th class="sub-header col-narrow section-sep header-production"><span class="vt">A Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">B Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">C Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">Total Prod</span></th>
+                        <th class="sub-header col-narrow header-quality"><span class="vt">Q. OK</span></th>
+                        <th class="sub-header col-narrow header-quality"><span class="vt">NG/Rej</span></th>
+                        <th class="sub-header col-medium header-quality"><span class="vt">Rej. Reason</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">Ach Man/Part</span></th>
+
+                        <!-- Operational Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-losses"><span class="vt">Startup</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Setup Chg</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Fixture</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">HR Loss</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Press</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">BOP</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">QC Hold</span></th>
+
+                        <!-- Maintenance Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-maintenance"><span class="vt">Robot Prog</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Robot Fault</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Shank</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Clamp</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Thickness</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Air/Gas</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Sensor</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">MIG</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Tucker</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">SSW</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">SPM</span></th>
+
+                        <!-- Other Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-losses"><span class="vt">PPC</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Mgmt</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Total Loss</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">No Plan Time</span></th>
+
+                        <!-- KPIs — FREE -->
+                        <th class="sub-header col-narrow section-sep header-kpi"><span class="vt">Cap Util%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Act Man/Part</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Avail%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Perf%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Qual%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">OEE%</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- rows inserted by daily-entry.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner-border" role="status"></div>
+    <p>Loading Data…</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="daily-entry.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Entry - JBM MIS</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Reset & layout ─────────────────────────────────────────── */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── Top controls bar ───────────────────────────────────────── */
+        .top-controls {
+            flex-shrink: 0;
+            background: var(--bg-surface);
+            border-bottom: 1px solid rgba(0,229,255,0.15);
+            padding: 0.65rem 1.5rem;
+            z-index: 60;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+        }
+
+        .top-controls h6 {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.06em;
+            color: var(--neon-cyan);
+            margin: 0;
+        }
+
+        .top-controls .date-control label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: rgba(0,229,255,0.6);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .top-controls .form-control {
+            background: rgba(0,229,255,0.05);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: #e0f7ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            border-radius: 6px;
+        }
+        .top-controls .form-control:focus {
+            background: rgba(0,229,255,0.08);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
+            color: #e0f7ff;
+        }
+
+        /* ── Spreadsheet wrapper ────────────────────────────────────── */
+        .spreadsheet-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-base);
+        }
+
+        .spreadsheet-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Custom scrollbars for dark theme */
+        .spreadsheet-container::-webkit-scrollbar { width: 10px; height: 10px; }
+        .spreadsheet-container::-webkit-scrollbar-track { background: var(--bg-surface); }
+        .spreadsheet-container::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.25); border-radius: 5px; }
+        .spreadsheet-container::-webkit-scrollbar-thumb:hover { background: rgba(0,229,255,0.45); }
+        .spreadsheet-container::-webkit-scrollbar-corner { background: var(--bg-surface); }
+
+        /* ── Table base ─────────────────────────────────────────────── */
+        .spreadsheet-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── MASTER HEADERS (row 1, sticky top:0) ───────────────────── */
+        .spreadsheet-table thead th.master-header {
+            padding: 10px 8px;
+            text-align: center;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 15;
+            white-space: nowrap;
+        }
+
+        /* ── SUB-HEADERS (row 2, sticky top: master-height) ─────────── */
+        .spreadsheet-table thead th.sub-header {
+            padding: 52px 4px 6px 4px;
+            text-align: left;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 9.5px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: sticky;
+            top: 38px;  /* height of master-header row */
+            z-index: 14;
+            vertical-align: bottom;
+        }
+
+        /* ── COLOUR THEMES — all fully OPAQUE ──────────────────────── */
+        .header-general      { background: #334155; color: #e2e8f0; }
+        .header-part-process { background: #0c3a4a; color: #e0f7ff; }
+        .header-planning     { background: #2e1065; color: #ede9fe; }
+        .header-manpower     { background: #1e3a8a; color: #dbeafe; }
+        .header-production   { background: #064e3b; color: #d1fae5; }
+        .header-quality      { background: #7f1d1d; color: #fee2e2; }
+        .header-losses       { background: #431407; color: #fed7aa; }
+        .header-maintenance  { background: #451a03; color: #fef3c7; }
+        .header-kpi          { background: #134e4a; color: #ccfbf1; }
+
+        /* ── FIXED column left-offsets ──────────────────────────────── */
+        /* Sr.No + Part & Process (12 sub-cols) + Planning first 4 sub-cols = 17 fixed cols */
+        .col-srno  { left: 0;      width: 36px;  min-width: 36px; }
+        .col-assy  { left: 36px;   width: 52px;  min-width: 52px; }
+        .col-date  { left: 88px;   width: 88px;  min-width: 88px; }
+        .col-sap   { left: 176px;  width: 82px;  min-width: 82px; }
+        .col-partno{ left: 258px;  width: 90px;  min-width: 90px; }
+        .col-desc  { left: 348px;  width: 160px; min-width: 160px;}
+        .col-model { left: 508px;  width: 72px;  min-width: 72px; }
+        .col-variant{left: 580px;  width: 64px;  min-width: 64px; }
+        .col-shop  { left: 644px;  width: 80px;  min-width: 80px; }
+        .col-owner { left: 724px;  width: 80px;  min-width: 80px; }
+        .col-process{left: 804px;  width: 70px;  min-width: 70px; }
+        .col-cell  { left: 874px;  width: 58px;  min-width: 58px; }
+        .col-op    { left: 932px;  width: 58px;  min-width: 58px; }
+        .col-stdman{ left: 990px;  width: 60px;  min-width: 60px; }
+        .col-ct    { left: 1050px; width: 60px;  min-width: 60px; }
+        .col-jph   { left: 1110px; width: 58px;  min-width: 58px; }
+        .col-cap   { left: 1168px; width: 64px;  min-width: 64px; }
+
+        /* ── FIXED column sticky rules ──────────────────────────────── */
+        .col-fixed {
+            position: sticky;
+        }
+
+        /* Fixed master-headers: z-index must beat scrolling non-fixed headers */
+        thead th.fixed-col.master-header { z-index: 110; }
+        thead th.fixed-col.sub-header    { z-index: 100; }
+        thead th:not(.fixed-col).master-header { z-index: 15; }
+        thead th:not(.fixed-col).sub-header    { z-index: 14; }
+
+        /* Fixed body cells */
+        tbody td.fixed-col { z-index: 5; }
+
+        /* Separator line after fixed zone */
+        .col-cap.fixed-col { border-right: 2px solid rgba(0,229,255,0.4) !important; }
+
+        /* ── FREE (scrollable) column widths ───────────────────────── */
+        .col-narrow { width: 50px; min-width: 50px; padding: 3px 2px !important; }
+        .col-medium { width: 80px; min-width: 80px; padding: 3px 4px !important; }
+
+        /* ── Body cells ─────────────────────────────────────────────── */
+        .spreadsheet-table tbody td {
+            padding: 2px 4px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: var(--bg-card);
+            vertical-align: middle;
+            white-space: nowrap;
+            color: #c8d6e5;
+        }
+
+        /* Fixed body cells get a slightly different opaque bg */
+        tbody td.fixed-col {
+            background: #0e1724 !important;
+        }
+
+        .spreadsheet-table tbody tr:nth-child(even) td {
+            background: #0c1520;
+        }
+        .spreadsheet-table tbody tr:nth-child(even) td.fixed-col {
+            background: #0b1420 !important;
+        }
+
+        .spreadsheet-table tbody tr:hover td {
+            background: rgba(0,229,255,0.06) !important;
+        }
+        .spreadsheet-table tbody tr:hover td.fixed-col {
+            background: rgba(0,229,255,0.09) !important;
+        }
+
+        /* ── Cell inputs ─────────────────────────────────────────────── */
+        .cell-input, .cell-select {
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid transparent;
+            background: transparent;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            color: #c8d6e5;
+            box-sizing: border-box;
+            border-radius: 3px;
+        }
+
+        .cell-input:focus, .cell-select:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(0,229,255,0.06);
+            outline: none;
+            color: #e0f7ff;
+            box-shadow: 0 0 0 1px rgba(0,229,255,0.2);
+        }
+
+        .cell-select option {
+            background: #0c1520;
+            color: #c8d6e5;
+        }
+
+        .cell-readonly {
+            background: rgba(0,229,255,0.04) !important;
+            color: var(--neon-cyan) !important;
+            font-weight: 600;
+        }
+
+        .cell-readonly input {
+            color: var(--neon-cyan) !important;
+            font-weight: 600;
+        }
+
+        /* OEE / KPI readonly colouring */
+        td[data-field="oeePct"] input       { color: var(--neon-green)  !important; }
+        td[data-field="qualityPct"] input   { color: var(--neon-teal)   !important; }
+        td[data-field="availabilityPct"] input{ color: var(--neon-cyan) !important; }
+        td[data-field="performancePct"] input { color: var(--neon-amber)!important; }
+        td[data-field="rejections"] input   { color: var(--neon-red)    !important; }
+
+        /* ── Section separator left border ──────────────────────────── */
+        .section-sep { border-left: 2px solid rgba(255,255,255,0.14) !important; }
+
+        /* ── Vertical text in sub-headers ───────────────────────────── */
+        .vt {
+            display: inline-block;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            font-size: 9.5px;
+            line-height: 1.2;
+        }
+
+        /* ── Delete button ──────────────────────────────────────────── */
+        .btn-del {
+            width: 22px; height: 22px;
+            padding: 0;
+            border-radius: 4px;
+            border: 1px solid rgba(255,23,68,0.4);
+            background: rgba(255,23,68,0.1);
+            color: var(--neon-red);
+            font-size: 10px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-del:hover {
+            background: rgba(255,23,68,0.25);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 8px rgba(255,23,68,0.3);
+        }
+
+        /* ── Buttons in top controls ────────────────────────────────── */
+        .btn-neon {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.06em;
+            padding: 0.42rem 1rem;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .btn-neon-success {
+            background: linear-gradient(135deg, #00c853, #00e676);
+            color: #001a06;
+        }
+        .btn-neon-success:hover { box-shadow: 0 0 16px rgba(0,230,118,0.5); transform: translateY(-1px); }
+
+        .btn-neon-warn {
+            background: linear-gradient(135deg, #ff8f00, #ffab00);
+            color: #1a0d00;
+        }
+        .btn-neon-warn:hover { box-shadow: 0 0 16px rgba(255,171,0,0.5); transform: translateY(-1px); }
+
+        .btn-neon-primary {
+            background: linear-gradient(135deg, #0070c0, #2979ff);
+            color: #ffffff;
+        }
+        .btn-neon-primary:hover { box-shadow: 0 0 16px rgba(41,121,255,0.5); transform: translateY(-1px); }
+
+        #csvUpload { display: none; }
+
+        /* ── Loading overlay ─────────────────────────────────────────── */
+        .loading-overlay {
+            position: fixed; inset: 0;
+            background: rgba(6,10,18,0.9);
+            backdrop-filter: blur(8px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .loading-overlay .spinner-border {
+            color: var(--neon-cyan) !important;
+            width: 2.5rem; height: 2.5rem;
+            border-width: 3px;
+            box-shadow: 0 0 20px rgba(0,229,255,0.4);
+        }
+        .loading-overlay p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--neon-cyan);
+            margin-top: 1rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 4rem 2rem;
+            color: rgba(0,229,255,0.3);
+            font-family: 'Syne', sans-serif;
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+        .empty-state p { font-size: 0.85rem; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body>
+<div class="main-wrapper">
+
+    <!-- ══ NAVBAR ══ -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="logo.png" alt="JBM Group">
+                <div class="navbar-brand-text">
+                    <span class="main-title">JBM MIS Dashboard</span>
+                    <span class="sub-title">Our milestones are touchstones</span>
+                </div>
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line me-1"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus me-1"></i>Daily Entry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt me-1"></i>Monthly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar me-1"></i>Yearly</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══ TOP CONTROLS ══ -->
+    <div class="top-controls">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h6><i class="fas fa-table me-2" style="color:var(--neon-cyan);"></i>MIS Daily Data Entry</h6>
+                <div class="date-control d-flex align-items-center gap-2">
+                    <label for="dateSelector"><i class="fas fa-calendar-day me-1"></i>Date:</label>
+                    <input type="date" id="dateSelector" class="form-control form-control-sm" style="width:155px;">
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button id="btnAddRow" class="btn-neon btn-neon-success">
+                    <i class="fas fa-plus me-1"></i>Add Row
+                </button>
+                <button id="btnUploadCSV" class="btn-neon btn-neon-warn">
+                    <i class="fas fa-upload me-1"></i>Upload CSV
+                </button>
+                <input type="file" id="csvUpload" accept=".csv">
+                <button id="btnExportExcel" class="btn-neon btn-neon-primary">
+                    <i class="fas fa-file-excel me-1"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ SPREADSHEET ══ -->
+    <div class="spreadsheet-wrapper">
+        <div class="spreadsheet-container">
+            <table class="spreadsheet-table" id="dataTable">
+                <thead>
+                    <!-- ═══════════════ MASTER HEADER ROW ═══════════════ -->
+                    <tr>
+                        <!-- Sr. No. — fixed, rowspan 2 -->
+                        <th class="master-header fixed-col col-srno header-general" rowspan="2">Sr.<br>No.</th>
+
+                        <!-- Part & Process Details — 12 cols — FIXED -->
+                        <th class="master-header fixed-col header-part-process" colspan="12" style="left: 36px; width: 954px;">Part &amp; Process Details</th>
+
+                        <!-- Production Planning & Standards — 4 fixed + 3 free -->
+                        <th class="master-header fixed-col header-planning" colspan="4" style="left: 990px; width: 242px;">Production Planning & Standards</th>
+                        <th class="master-header header-planning section-sep" colspan="3">Planning (cont.)</th>
+
+                        <!-- Actual Manpower -->
+                        <th class="master-header header-manpower section-sep" colspan="4">Actual Manpower</th>
+
+                        <!-- Actual Production -->
+                        <th class="master-header header-production section-sep" colspan="8">Actual Production</th>
+
+                        <!-- Operational Losses -->
+                        <th class="master-header header-losses section-sep" colspan="7">Operational Losses</th>
+
+                        <!-- Maintenance & Technical Losses -->
+                        <th class="master-header header-maintenance section-sep" colspan="11">Maintenance &amp; Technical Losses</th>
+
+                        <!-- Management / Other Losses -->
+                        <th class="master-header header-losses section-sep" colspan="4">Other Losses</th>
+
+                        <!-- Performance KPIs -->
+                        <th class="master-header header-kpi section-sep" colspan="6">Performance KPIs</th>
+
+                        <!-- Actions -->
+                        <th class="master-header header-general" rowspan="2" style="min-width:32px;"></th>
+                    </tr>
+
+                    <!-- ═══════════════ SUB-HEADER ROW ═══════════════ -->
+                    <tr>
+                        <!-- Part & Process sub-headers — FIXED -->
+                        <th class="sub-header fixed-col col-assy header-part-process"><span class="vt">Assy Cat.</span></th>
+                        <th class="sub-header fixed-col col-date header-part-process"><span class="vt">Date</span></th>
+                        <th class="sub-header fixed-col col-sap header-part-process"><span class="vt">SAP Code</span></th>
+                        <th class="sub-header fixed-col col-partno header-part-process"><span class="vt">Part No.</span></th>
+                        <th class="sub-header fixed-col col-desc header-part-process"><span class="vt">Part Description</span></th>
+                        <th class="sub-header fixed-col col-model header-part-process"><span class="vt">Model</span></th>
+                        <th class="sub-header fixed-col col-variant header-part-process"><span class="vt">Variant</span></th>
+                        <th class="sub-header fixed-col col-shop header-part-process"><span class="vt">Shop/Area</span></th>
+                        <th class="sub-header fixed-col col-owner header-part-process"><span class="vt">Ownership</span></th>
+                        <th class="sub-header fixed-col col-process header-part-process"><span class="vt">Process</span></th>
+                        <th class="sub-header fixed-col col-cell header-part-process"><span class="vt">Cell No.</span></th>
+                        <th class="sub-header fixed-col col-op header-part-process"><span class="vt">OP</span></th>
+
+                        <!-- Planning Standards sub-headers — FIXED (first 4) -->
+                        <th class="sub-header fixed-col col-stdman header-planning"><span class="vt">Std. ManHead</span></th>
+                        <th class="sub-header fixed-col col-ct header-planning"><span class="vt">CT (Min)</span></th>
+                        <th class="sub-header fixed-col col-jph header-planning"><span class="vt">JPH</span></th>
+                        <th class="sub-header fixed-col col-cap header-planning"><span class="vt">Cap/day</span></th>
+
+                        <!-- Planning cont. — FREE -->
+                        <th class="sub-header col-narrow section-sep header-planning"><span class="vt">Tgt Man/Part</span></th>
+                        <th class="sub-header col-narrow header-planning"><span class="vt">Plan</span></th>
+                        <th class="sub-header col-narrow header-planning"><span class="vt">Req. Mdays</span></th>
+
+                        <!-- Manpower — FREE -->
+                        <th class="sub-header col-narrow section-sep header-manpower"><span class="vt">A Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">B Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">C Shift MP</span></th>
+                        <th class="sub-header col-narrow header-manpower"><span class="vt">Total Mdays</span></th>
+
+                        <!-- Production — FREE -->
+                        <th class="sub-header col-narrow section-sep header-production"><span class="vt">A Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">B Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">C Prod</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">Total Prod</span></th>
+                        <th class="sub-header col-narrow header-quality"><span class="vt">Q. OK</span></th>
+                        <th class="sub-header col-narrow header-quality"><span class="vt">NG/Rej</span></th>
+                        <th class="sub-header col-medium header-quality"><span class="vt">Rej. Reason</span></th>
+                        <th class="sub-header col-narrow header-production"><span class="vt">Ach Man/Part</span></th>
+
+                        <!-- Operational Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-losses"><span class="vt">Startup</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Setup Chg</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Fixture</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">HR Loss</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Press</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">BOP</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">QC Hold</span></th>
+
+                        <!-- Maintenance Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-maintenance"><span class="vt">Robot Prog</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Robot Fault</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Shank</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Clamp</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Thickness</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Air/Gas</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Sensor</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">MIG</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">Tucker</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">SSW</span></th>
+                        <th class="sub-header col-narrow header-maintenance"><span class="vt">SPM</span></th>
+
+                        <!-- Other Losses — FREE -->
+                        <th class="sub-header col-narrow section-sep header-losses"><span class="vt">PPC</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Mgmt</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">Total Loss</span></th>
+                        <th class="sub-header col-narrow header-losses"><span class="vt">No Plan Time</span></th>
+
+                        <!-- KPIs — FREE -->
+                        <th class="sub-header col-narrow section-sep header-kpi"><span class="vt">Cap Util%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Act Man/Part</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Avail%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Perf%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">Qual%</span></th>
+                        <th class="sub-header col-narrow header-kpi"><span class="vt">OEE%</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- rows inserted by daily-entry.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner-border" role="status"></div>
+    <p>Loading Data…</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="daily-entry.js"></script>
+</body>
+</html>
