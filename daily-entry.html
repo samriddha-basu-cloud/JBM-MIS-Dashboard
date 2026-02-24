@@ -9,7 +9,66 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
+/* ── Navbar override (matches index.html) ── */
+.navbar {
+  position: relative; flex-shrink: 0;
+  background: rgba(6,10,18,0.97) !important;
+  border-bottom: 1px solid rgba(0,229,255,0.15) !important;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 0 rgba(0,229,255,0.12), 0 4px 24px rgba(0,0,0,.55) !important;
+  padding: 0.7rem 0 !important;
+}
+.navbar .container-fluid { max-width: 1700px; gap: .75rem; }
+.navbar-brand {
+  font-family: 'Syne', sans-serif !important; font-weight: 800 !important;
+  display: flex !important; align-items: center !important; gap: .875rem !important;
+  padding: 0 !important; text-decoration: none; transition: all .3s ease;
+}
+.navbar-brand img { height: 44px !important; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(0,229,255,.55)) !important; }
+.navbar-brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.navbar-brand-text .main-title {
+  font-size: 1.2rem !important; font-weight: 800 !important; letter-spacing: -.3px;
+  background: linear-gradient(90deg, #00e5ff 0%, #fff 60%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.navbar-brand-text .sub-title {
+  font-size: .65rem !important; font-weight: 500; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.6);
+  -webkit-text-fill-color: rgba(255,255,255,.6); opacity: .8;
+}
+.navbar-nav { gap: 2px; align-items: center; }
+.nav-link {
+  font-family: 'Syne', sans-serif !important; font-size: .85rem !important;
+  font-weight: 600 !important; padding: .5rem 1rem !important; border-radius: 6px;
+  margin: 0 .15rem; letter-spacing: .3px;
+  color: rgba(255,255,255,.65) !important; transition: all .3s ease;
+}
+.nav-link i { margin-right: 6px; }
+.nav-link:hover { color: #00e5ff !important; background: rgba(0,229,255,.08) !important; }
+.nav-link.active { color: #00e5ff !important; background: rgba(0,229,255,.12) !important; box-shadow: inset 0 0 0 1px rgba(0,229,255,.25) !important; }
+.nav-extras { display: flex; align-items: center; gap: .75rem; margin-left: 1rem; }
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 500;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #00e676; background: rgba(0,230,118,.10);
+  border: 1px solid rgba(0,230,118,.2); border-radius: 20px; padding: .22rem .65rem;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #00e676;
+  animation: pulse-live 2s ease infinite;
+}
+@keyframes pulse-live {
+  0%   { box-shadow: 0 0 0 0 rgba(0,230,118,.7); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
+}
+.clock-display {
+  font-family: 'DM Mono', monospace; font-size: .78rem;
+  color: rgba(255,255,255,.55); letter-spacing: 1px; min-width: 68px; text-align: right;
+}
         /* ── Reset & layout ─────────────────────────────────────────── */
         html, body {
             margin: 0; padding: 0;
@@ -206,10 +265,10 @@
         }
 
         .spreadsheet-table tbody tr:hover td {
-            background: rgba(0,229,255,0.06) !important;
+            background: inherit !important;
         }
         .spreadsheet-table tbody tr:hover td.fixed-col {
-            background: rgba(0,229,255,0.09) !important;
+            background: #0e1724 !important;
         }
 
         /* ── Cell inputs ─────────────────────────────────────────────── */
@@ -360,22 +419,29 @@
 <div class="main-wrapper">
 
     <!-- ══ NAVBAR ══ -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="flex-shrink:0;">
+        <div class="container-fluid" style="max-width:1700px; gap:.75rem;">
             <a class="navbar-brand" href="#">
                 <img src="logo.png" alt="JBM Group">
                 <div class="navbar-brand-text">
                     <span class="main-title">JBM MIS Dashboard</span>
-                    <span class="sub-title">Our milestones are touchstones</span>
+                    <span class="sub-title">Manufacturing Intelligence System</span>
                 </div>
             </a>
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line me-1"></i>Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus me-1"></i>Daily Entry</a></li>
-                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt me-1"></i>Monthly</a></li>
-                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar me-1"></i>Yearly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus"></i>Daily Entry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt"></i>Monthly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar"></i>Yearly</a></li>
                 </ul>
+                <div class="nav-extras">
+                    <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+                    <div class="clock-display" id="clockDisplay">--:--:--</div>
+                </div>
             </div>
         </div>
     </nav>
@@ -540,6 +606,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>(function tick(){var els=document.querySelectorAll('#clockDisplay');els.forEach(function(el){el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});});setTimeout(tick,1000);})();</script>
 <script type="module" src="daily-entry.js"></script>
 </body>
 </html><!DOCTYPE html>
@@ -553,7 +620,66 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
+/* ── Navbar override (matches index.html) ── */
+.navbar {
+  position: relative; flex-shrink: 0;
+  background: rgba(6,10,18,0.97) !important;
+  border-bottom: 1px solid rgba(0,229,255,0.15) !important;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 1px 0 rgba(0,229,255,0.12), 0 4px 24px rgba(0,0,0,.55) !important;
+  padding: 0.7rem 0 !important;
+}
+.navbar .container-fluid { max-width: 1700px; gap: .75rem; }
+.navbar-brand {
+  font-family: 'Syne', sans-serif !important; font-weight: 800 !important;
+  display: flex !important; align-items: center !important; gap: .875rem !important;
+  padding: 0 !important; text-decoration: none; transition: all .3s ease;
+}
+.navbar-brand img { height: 44px !important; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(0,229,255,.55)) !important; }
+.navbar-brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.navbar-brand-text .main-title {
+  font-size: 1.2rem !important; font-weight: 800 !important; letter-spacing: -.3px;
+  background: linear-gradient(90deg, #00e5ff 0%, #fff 60%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.navbar-brand-text .sub-title {
+  font-size: .65rem !important; font-weight: 500; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.6);
+  -webkit-text-fill-color: rgba(255,255,255,.6); opacity: .8;
+}
+.navbar-nav { gap: 2px; align-items: center; }
+.nav-link {
+  font-family: 'Syne', sans-serif !important; font-size: .85rem !important;
+  font-weight: 600 !important; padding: .5rem 1rem !important; border-radius: 6px;
+  margin: 0 .15rem; letter-spacing: .3px;
+  color: rgba(255,255,255,.65) !important; transition: all .3s ease;
+}
+.nav-link i { margin-right: 6px; }
+.nav-link:hover { color: #00e5ff !important; background: rgba(0,229,255,.08) !important; }
+.nav-link.active { color: #00e5ff !important; background: rgba(0,229,255,.12) !important; box-shadow: inset 0 0 0 1px rgba(0,229,255,.25) !important; }
+.nav-extras { display: flex; align-items: center; gap: .75rem; margin-left: 1rem; }
+.live-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 500;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: #00e676; background: rgba(0,230,118,.10);
+  border: 1px solid rgba(0,230,118,.2); border-radius: 20px; padding: .22rem .65rem;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #00e676;
+  animation: pulse-live 2s ease infinite;
+}
+@keyframes pulse-live {
+  0%   { box-shadow: 0 0 0 0 rgba(0,230,118,.7); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,230,118,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,230,118,0); }
+}
+.clock-display {
+  font-family: 'DM Mono', monospace; font-size: .78rem;
+  color: rgba(255,255,255,.55); letter-spacing: 1px; min-width: 68px; text-align: right;
+}
         /* ── Reset & layout ─────────────────────────────────────────── */
         html, body {
             margin: 0; padding: 0;
@@ -750,10 +876,10 @@
         }
 
         .spreadsheet-table tbody tr:hover td {
-            background: rgba(0,229,255,0.06) !important;
+            background: inherit !important;
         }
         .spreadsheet-table tbody tr:hover td.fixed-col {
-            background: rgba(0,229,255,0.09) !important;
+            background: #0e1724 !important;
         }
 
         /* ── Cell inputs ─────────────────────────────────────────────── */
@@ -904,22 +1030,29 @@
 <div class="main-wrapper">
 
     <!-- ══ NAVBAR ══ -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="flex-shrink:0;">
+        <div class="container-fluid" style="max-width:1700px; gap:.75rem;">
             <a class="navbar-brand" href="#">
                 <img src="logo.png" alt="JBM Group">
                 <div class="navbar-brand-text">
                     <span class="main-title">JBM MIS Dashboard</span>
-                    <span class="sub-title">Our milestones are touchstones</span>
+                    <span class="sub-title">Manufacturing Intelligence System</span>
                 </div>
             </a>
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line me-1"></i>Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus me-1"></i>Daily Entry</a></li>
-                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt me-1"></i>Monthly</a></li>
-                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar me-1"></i>Yearly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="daily-entry.html"><i class="fas fa-calendar-plus"></i>Daily Entry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="monthly-view.html"><i class="fas fa-calendar-alt"></i>Monthly</a></li>
+                    <li class="nav-item"><a class="nav-link" href="yearly-view.html"><i class="fas fa-calendar"></i>Yearly</a></li>
                 </ul>
+                <div class="nav-extras">
+                    <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+                    <div class="clock-display" id="clockDisplay">--:--:--</div>
+                </div>
             </div>
         </div>
     </nav>
@@ -1084,6 +1217,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>(function tick(){var els=document.querySelectorAll('#clockDisplay');els.forEach(function(el){el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});});setTimeout(tick,1000);})();</script>
 <script type="module" src="daily-entry.js"></script>
 </body>
 </html>
